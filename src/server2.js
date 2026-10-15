@@ -2,11 +2,10 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.HOST || 'localhost';
-const APP_NAME = process.env.APP_NAME || 'Mi Aplicación';
+const PORT = Number(process.env.PORT);
+const HOST = process.env.HOST;
+const APP_NAME = process.env.APP_NAME;
 
-// ----- Datos en memoria -----
 const facultades = [
   { id: 1, nombre: 'Facultad de Ingeniería' },
   { id: 2, nombre: 'Facultad de Ciencias Sociales' },
@@ -21,7 +20,13 @@ const programas = [
 
 let nextProgramaId = 4;
 
-// ----- Rutas -----
+const nivelesPermitidos = [
+  "pregrado",
+  "posgrado",
+  "otro"
+];
+
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -49,6 +54,7 @@ app.get('/api/programas', (req, res) => {
   });
 });
 
+
 app.post('/api/programas/store', (req, res) => {
   const { codigo, nombre, facultadId, nivel } = req.body;
 
@@ -71,7 +77,14 @@ app.post('/api/programas/store', (req, res) => {
     });
   }
 
-  // HU1: código único
+  if (!nivelesPermitidos.includes(nivel.toLowerCase())) {
+    return res.status(422).json({
+      statusCode: 422,
+      success: false,
+      message: `El nivel "${nivel}" no es válido. Los niveles permitidos son: ${nivelesPermitidos.join(', ')}`,
+    });
+  }
+
   if (programas.some(p => p.codigo.toLowerCase() === codigo.toLowerCase())) {
     return res.status(409).json({
       statusCode: 409,
@@ -80,13 +93,26 @@ app.post('/api/programas/store', (req, res) => {
     });
   }
 
-  // HU1: nombre único dentro de la facultad
+ 
   if (programas.some(p => p.facultadId === idFacultad && p.nombre.toLowerCase() === nombre.toLowerCase())) {
     return res.status(409).json({
       statusCode: 409,
       success: false,
       message: `Ya existe el programa "${nombre}" en esa facultad`,
     });
+  }
+
+  const nombreNormalizado =
+      name
+        .trim()
+        .toLowerCase();
+
+  if (programaExiste){
+    return res.status(409).json({
+      statusCode: 409,
+      success: false,
+      message: `Ya existe un programa con el nombre "${nombre}" en la facultad con id ${facultadId}`,
+    }); 
   }
 
   const newPrograma = {
@@ -98,6 +124,8 @@ app.post('/api/programas/store', (req, res) => {
     createdBy: 'System',
     createdAt: new Date().toISOString(),
   };
+
+
 
   programas.push(newPrograma);
 
